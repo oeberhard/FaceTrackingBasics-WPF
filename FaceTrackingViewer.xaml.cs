@@ -14,6 +14,7 @@ namespace FaceTrackingBasics
     using System.Windows.Media;
     using Microsoft.Kinect;
     using Microsoft.Kinect.Toolkit.FaceTracking;
+    using Midi;
 
     using Point = System.Windows.Point;
 
@@ -46,15 +47,20 @@ namespace FaceTrackingBasics
 
         private Skeleton[] skeletonData;
 
+        private OutputDevice midiOutputDevice;
+
         public FaceTrackingViewer()
         {
             this.InitializeComponent();
+            
         }
 
         ~FaceTrackingViewer()
         {
             this.Dispose(false);
         }
+
+
 
         public KinectSensor Kinect
         {
@@ -258,6 +264,21 @@ namespace FaceTrackingBasics
 
             public int LastTrackedFrame { get; set; }
 
+            private OutputDevice midiOutputDevice;
+
+            public SkeletonFaceTracker()
+            {
+                midiOutputDevice = OutputDevice.InstalledDevices[1];
+                midiOutputDevice.Open();
+            }
+
+            ~SkeletonFaceTracker()
+            {
+                midiOutputDevice.Close();
+            }
+
+            
+
             public void Dispose()
             {
                 if (this.faceTracker != null)
@@ -348,6 +369,26 @@ namespace FaceTrackingBasics
                         }
 
                         this.facePoints = frame.GetProjected3DShape();
+
+                        EnumIndexableCollection<AnimationUnit, float> aniUnit = frame.GetAnimationUnitCoefficients();
+                        float f = aniUnit[1];
+                        float f2 = aniUnit[2];
+                        
+
+
+                        int midiValue = (int)(f * 64 + 64);
+                        if (midiValue < 0) midiValue = 0;
+                        if (midiValue > 127) midiValue = 127;
+
+                        int midiValue2 = (int)(f2 * 64 + 64);
+                        if (midiValue2 < 0) midiValue2 = 0;
+                        if (midiValue2 > 127) midiValue2 = 127;
+                        //System.Console.WriteLine(midiValue);
+
+                        midiOutputDevice.SendControlChange((Midi.Channel)1, Midi.Control.ModulationWheel, midiValue);
+                        midiOutputDevice.SendControlChange((Midi.Channel)1, Midi.Control.Volume, midiValue2);
+
+                        //midiOutputDevice.Close();
                     }
                 }
             }
